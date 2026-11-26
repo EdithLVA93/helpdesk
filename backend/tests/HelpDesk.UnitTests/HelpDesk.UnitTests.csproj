@@ -2,6 +2,11 @@
 
   <PropertyGroup>
     <IsPackable>false</IsPackable>
+    <!--
+      CA1707: los tests se nombran Metodo_Escenario_ResultadoEsperado; los
+      guiones bajos son la convención y hacen legible el informe de pruebas.
+    -->
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,6 +17,7 @@
   <ItemGroup>
     <PackageReference Include="coverlet.collector" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NSubstitute" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
   </ItemGroup>
