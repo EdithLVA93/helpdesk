@@ -1,0 +1,247 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Tickets</h1>
+      <p>Seguimiento de las solicitudes de soporte del área de TI.</p>
+    </div>
+    <a mat-flat-button routerLink="/tickets/new"><mat-icon>add</mat-icon> Nuevo ticket</a>
+  </header>
+
+  <!-- Indicadores: al pulsar una tarjeta se filtra por ese estado -->
+  <div class="kpis" role="group" aria-label="Indicadores por estado">
+    @for (kpi of kpis; track kpi.label) {
+      <button
+        type="button"
+        class="kpi"
+        [class]="'kpi kpi--' + kpi.tone"
+        [class.kpi--active]="activeStatus() === kpi.status"
+        [attr.aria-pressed]="activeStatus() === kpi.status"
+        (click)="filterByStatus(kpi.status)"
+      >
+        <span class="kpi__icon"><mat-icon>{{ kpi.icon }}</mat-icon></span>
+        <span class="kpi__body">
+          <span class="kpi__label">{{ kpi.label }}</span>
+          <span class="kpi__value">{{ kpiValue(kpi) ?? '—' }}</span>
+        </span>
+      </button>
+    }
+  </div>
+
+  <div class="card table-card">
+    <!-- Filtros -->
+    <form class="filters" [formGroup]="filters" aria-label="Filtros de tickets">
+      <mat-form-field>
+        <mat-label>Estado</mat-label>
+        <mat-select formControlName="status">
+          <mat-option [value]="null">Todos</mat-option>
+          @for (status of statuses; track status) {
+            <mat-option [value]="status">{{ statusLabels[status] }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>Responsable</mat-label>
+        <mat-select formControlName="assignedUserId">
+          <mat-option [value]="null">Todos</mat-option>
+          @for (user of users(); track user.id) {
+            <mat-option [value]="user.id">{{ user.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>Prioridad</mat-label>
+        <mat-select formControlName="priority">
+          <mat-option [value]="null">Todas</mat-option>
+          @for (priority of priorities; track priority) {
+            <mat-option [value]="priority">{{ priorityLabels[priority] }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>Etiqueta</mat-label>
+        <mat-select formControlName="tag">
+          <mat-option [value]="null">Todas</mat-option>
+          @for (tag of tags(); track tag.tag) {
+            <mat-option [value]="tag.tag">{{ tag.tag }} ({{ tag.ticketCount }})</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>Orden</mat-label>
+        <mat-select formControlName="sortDirection">
+          <mat-option value="Descending">Más recientes primero</mat-option>
+          <mat-option value="Ascending">Más antiguos primero</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <button mat-stroked-button type="button" class="filters__clear" [disabled]="!hasActiveFilters()" (click)="clearFilters()">
+        <mat-icon>filter_alt_off</mat-icon> Limpiar
+      </button>
+    </form>
+
+    <div class="progress-slot">
+      @if (loading()) {
+        <mat-progress-bar mode="indeterminate" aria-label="Cargando tickets" />
+      }
+    </div>
+
+    <!-- Listado -->
+    @if (loadError(); as message) {
+      <div class="state state--error" role="alert">
+        <mat-icon>cloud_off</mat-icon>
+        <p>{{ message }}</p>
+        <button mat-stroked-button type="button" (click)="reload()">Reintentar</button>
+      </div>
+    } @else if (!page()) {
+      <!-- Primera carga: todavía no hay datos que mostrar. -->
+      <div class="state" aria-live="polite">
+        <mat-icon>hourglass_top</mat-icon>
+        <p>Cargando tickets…</p>
+      </div>
+    } @else if (tickets().length === 0) {
+      <div class="state">
+        <mat-icon>inbox</mat-icon>
+        @if (hasActiveFilters()) {
+          <p>No hay tickets con los filtros seleccionados.</p>
+          <button mat-stroked-button type="button" (click)="clearFilters()">Limpiar filtros</button>
+        } @else {
+          <p>Todavía no hay tickets registrados.</p>
+          <a mat-stroked-button routerLink="/tickets/new">Crear el primero</a>
+        }
+      </div>
+    } @else {
+      <div class="table-scroll">
+        <table mat-table [dataSource]="tickets()" class="tickets-table" [class.is-loading]="loading()">
+          <ng-container matColumnDef="id">
+            <th mat-header-cell *matHeaderCellDef>#</th>
+            <td mat-cell *matCellDef="let ticket" class="muted">{{ ticket.id }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="title">
+            <th mat-header-cell *matHeaderCellDef>Ticket</th>
+            <td mat-cell *matCellDef="let ticket" class="title-cell">
+              <div class="title-cell__title">{{ ticket.title }}</div>
+              @if (ticket.description) {
+                <div class="title-cell__description muted" [matTooltip]="ticket.description" matTooltipShowDelay="400">
+                  {{ ticket.description }}
+                </div>
+              }
+              <div class="title-cell__meta">
+                @if (ticket.additionalData.category) {
+                  <span class="meta-chip"><mat-icon>folder</mat-icon>{{ ticket.additionalData.category }}</span>
+                }
+                @if (ticket.additionalData.estimatedResolutionDate; as date) {
+                  <span class="meta-chip" [class.meta-chip--overdue]="isOverdue(ticket)" [matTooltip]="isOverdue(ticket) ? 'Fecha estimada vencida' : 'Fecha estimada de solución'">
+                    <mat-icon>event</mat-icon>{{ date | date: 'dd/MM/yyyy' }}
+                  </span>
+                }
+                @for (tag of ticket.additionalData.tags; track tag) {
+                  <span class="tag">#{{ tag }}</span>
+                }
+              </div>
+              <div class="title-cell__mobile muted">
+                {{ ticket.assignedUserName }} · <app-priority-badge [priority]="ticket.additionalData.priority" />
+              </div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="assignedUserName">
+            <th mat-header-cell *matHeaderCellDef>Responsable</th>
+            <td mat-cell *matCellDef="let ticket">{{ ticket.assignedUserName }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Estado</th>
+            <td mat-cell *matCellDef="let ticket"><app-status-badge [status]="ticket.status" /></td>
+          </ng-container>
+
+          <ng-container matColumnDef="priority">
+            <th mat-header-cell *matHeaderCellDef>Prioridad</th>
+            <td mat-cell *matCellDef="let ticket"><app-priority-badge [priority]="ticket.additionalData.priority" /></td>
+          </ng-container>
+
+          <ng-container matColumnDef="createdAt">
+            <th mat-header-cell *matHeaderCellDef>Creado</th>
+            <td mat-cell *matCellDef="let ticket" class="nowrap">{{ ticket.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef><span class="visually-hidden">Acciones</span></th>
+            <td mat-cell *matCellDef="let ticket" class="actions-cell">
+              <button
+                mat-icon-button
+                type="button"
+                [matMenuTriggerFor]="actionsMenu"
+                [matMenuTriggerData]="{ ticket: ticket }"
+                [disabled]="updatingId() === ticket.id"
+                [attr.aria-label]="'Acciones del ticket #' + ticket.id"
+              >
+                <mat-icon>{{ updatingId() === ticket.id ? 'hourglass_top' : 'more_vert' }}</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns()"></tr>
+        </table>
+      </div>
+
+      <mat-paginator
+        [length]="totalCount()"
+        [pageIndex]="pageIndex()"
+        [pageSize]="pageSize()"
+        [pageSizeOptions]="pageSizeOptions"
+        (page)="onPage($event)"
+        aria-label="Paginación de tickets"
+      />
+    }
+  </div>
+</section>
+
+<!-- Menú de acciones de cada fila -->
+<mat-menu #actionsMenu="matMenu" xPosition="before">
+  <ng-template matMenuContent let-ticket="ticket">
+    <div class="menu-heading">Cambiar estado</div>
+    @for (status of statuses; track status) {
+      @if (status !== ticket.status) {
+        <button
+          mat-menu-item
+          type="button"
+          [disabled]="!ticket.allowedTransitions.includes(status)"
+          (click)="changeStatus(ticket, status)"
+        >
+          <mat-icon>{{ statusIcons[status] }}</mat-icon>
+          <span>{{ statusLabels[status] }}</span>
+          @if (!ticket.allowedTransitions.includes(status)) {
+            <span class="menu-note">No permitido desde «{{ statusLabel(ticket.status) }}»</span>
+          }
+        </button>
+      }
+    }
+    <mat-divider />
+    <button mat-menu-item type="button" [matMenuTriggerFor]="priorityMenu" [matMenuTriggerData]="{ ticket: ticket }">
+      <mat-icon>flag</mat-icon>
+      <span>Cambiar prioridad</span>
+    </button>
+  </ng-template>
+</mat-menu>
+
+<mat-menu #priorityMenu="matMenu">
+  <ng-template matMenuContent let-ticket="ticket">
+    @for (priority of priorities; track priority) {
+      <button
+        mat-menu-item
+        type="button"
+        [disabled]="ticket.additionalData.priority === priority"
+        (click)="changePriority(ticket, priority)"
+      >
+        <mat-icon>{{ priorityIcons[priority] }}</mat-icon>
+        <span>{{ priorityLabels[priority] }}</span>
+      </button>
+    }
+  </ng-template>
+</mat-menu>

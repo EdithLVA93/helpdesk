@@ -1,0 +1,105 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Usuarios</h1>
+      <p>Colaboradores que pueden ser responsables de tickets.</p>
+    </div>
+  </header>
+
+  <div class="users-layout">
+    <!-- Alta de usuario -->
+    <form class="card" [formGroup]="form" (ngSubmit)="submit()" novalidate aria-labelledby="new-user-title">
+      <h2 class="card__title" id="new-user-title"><mat-icon>person_add</mat-icon> Nuevo usuario</h2>
+
+      <mat-form-field class="full-width">
+        <mat-label>Nombre completo</mat-label>
+        <input matInput formControlName="name" autocomplete="name" [maxlength]="limits.nameMaxLength" />
+        @let name = form.controls.name;
+        @if (name.hasError('required')) {
+          <mat-error>El nombre es obligatorio.</mat-error>
+        } @else if (name.hasError('maxlength')) {
+          <mat-error>Máximo {{ limits.nameMaxLength }} caracteres.</mat-error>
+        } @else if (serverError(name); as message) {
+          <mat-error>{{ message }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field class="full-width">
+        <mat-label>Correo electrónico</mat-label>
+        <input matInput type="email" formControlName="email" autocomplete="email" [maxlength]="limits.emailMaxLength" />
+        @let email = form.controls.email;
+        @if (email.hasError('required')) {
+          <mat-error>El correo electrónico es obligatorio.</mat-error>
+        } @else if (email.hasError('email')) {
+          <mat-error>Escriba un correo válido, por ejemplo nombre&#64;empresa.com.</mat-error>
+        } @else if (email.hasError('maxlength')) {
+          <mat-error>Máximo {{ limits.emailMaxLength }} caracteres.</mat-error>
+        } @else if (serverError(email); as message) {
+          <mat-error>{{ message }}</mat-error>
+        }
+      </mat-form-field>
+
+      <div class="form-actions">
+        <button mat-flat-button type="submit" [disabled]="saving()">
+          @if (saving()) {
+            <mat-spinner class="button-spinner" diameter="18" aria-label="Guardando" />
+          } @else {
+            <mat-icon>save</mat-icon>
+          }
+          Crear usuario
+        </button>
+      </div>
+    </form>
+
+    <!-- Listado -->
+    <div class="card users-list-card">
+      <div class="list-header">
+        <h2 class="card__title">
+          <mat-icon>group</mat-icon> Usuarios registrados
+          <span class="count">{{ users().length }}</span>
+        </h2>
+
+        <mat-form-field class="search" subscriptSizing="fixed">
+          <mat-icon matPrefix>search</mat-icon>
+          <mat-label>Buscar por nombre o correo</mat-label>
+          <input matInput [value]="search()" (input)="search.set($any($event.target).value)" />
+        </mat-form-field>
+      </div>
+
+      @if (loading()) {
+        <mat-progress-bar mode="indeterminate" aria-label="Cargando usuarios" />
+      }
+
+      @if (loadError(); as message) {
+        <div class="state state--error" role="alert">
+          <mat-icon>cloud_off</mat-icon>
+          <p>{{ message }}</p>
+          <button mat-stroked-button type="button" (click)="loadUsers()">Reintentar</button>
+        </div>
+      } @else if (!loading() && users().length === 0) {
+        <div class="state">
+          <mat-icon>person_off</mat-icon>
+          <p>Todavía no hay usuarios. Cree el primero con el formulario.</p>
+        </div>
+      } @else if (!loading() && filteredUsers().length === 0) {
+        <div class="state">
+          <mat-icon>search_off</mat-icon>
+          <p>Ningún usuario coincide con «{{ search() }}».</p>
+        </div>
+      } @else {
+        <ul class="users-list">
+          @for (user of filteredUsers(); track user.id) {
+            <li class="user-row">
+              <span class="avatar" aria-hidden="true">{{ initials(user.name) }}</span>
+              <div class="user-row__info">
+                <span class="user-row__name">{{ user.name }}</span>
+                <span class="muted">{{ user.email }}</span>
+              </div>
+              <span class="muted user-row__date" title="Fecha de alta">{{ user.createdAt | date: 'dd/MM/yyyy' }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  </div>
+</section>

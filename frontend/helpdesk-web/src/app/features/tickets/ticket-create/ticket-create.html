@@ -1,0 +1,172 @@
+<section class="page page--narrow">
+  <header class="page-header">
+    <div>
+      <h1>Nuevo ticket</h1>
+      <p>Registre la solicitud de soporte y asígnela a un responsable.</p>
+    </div>
+    <a mat-button routerLink="/tickets"><mat-icon>arrow_back</mat-icon> Volver al listado</a>
+  </header>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="create-form">
+    <!-- Datos principales -->
+    <div class="card">
+      <h2 class="card__title"><mat-icon>description</mat-icon> Información del ticket</h2>
+
+      <div class="form-grid">
+        <mat-form-field class="span-2">
+          <mat-label>Título</mat-label>
+          <input matInput formControlName="title" [maxlength]="limits.titleMaxLength" placeholder="Ej.: La VPN se desconecta cada 10 minutos" />
+          <mat-hint align="end">{{ controls.title.value.length }} / {{ limits.titleMaxLength }}</mat-hint>
+          @if (controls.title.hasError('required')) {
+            <mat-error>El título del ticket es obligatorio.</mat-error>
+          } @else if (controls.title.hasError('maxlength')) {
+            <mat-error>Máximo {{ limits.titleMaxLength }} caracteres.</mat-error>
+          } @else if (serverError(controls.title); as message) {
+            <mat-error>{{ message }}</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field class="span-2">
+          <mat-label>Descripción</mat-label>
+          <textarea matInput formControlName="description" rows="4" [maxlength]="limits.descriptionMaxLength" placeholder="Describa el problema, desde cuándo ocurre y a quién afecta."></textarea>
+          <mat-hint align="end">{{ controls.description.value.length }} / {{ limits.descriptionMaxLength }}</mat-hint>
+          @if (serverError(controls.description); as message) {
+            <mat-error>{{ message }}</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field class="span-2">
+          <mat-label>Usuario responsable</mat-label>
+          <mat-select formControlName="assignedUserId">
+            @for (user of users(); track user.id) {
+              <mat-option [value]="user.id">
+                {{ user.name }} <span class="muted option-email">· {{ user.email }}</span>
+              </mat-option>
+            }
+          </mat-select>
+          @if (usersLoading()) {
+            <mat-hint>Cargando usuarios…</mat-hint>
+          } @else if (usersError()) {
+            <mat-hint class="hint-error">No se pudieron cargar los usuarios.</mat-hint>
+          } @else if (users().length === 0) {
+            <mat-hint>No hay usuarios. <a routerLink="/users">Cree uno primero</a>.</mat-hint>
+          }
+          @if (controls.assignedUserId.hasError('required')) {
+            <mat-error>Todo ticket debe tener un usuario asignado.</mat-error>
+          } @else if (serverError(controls.assignedUserId); as message) {
+            <mat-error>{{ message }}</mat-error>
+          }
+        </mat-form-field>
+
+        @if (usersError(); as message) {
+          <div class="span-2 inline-alert" role="alert">
+            <mat-icon>cloud_off</mat-icon> {{ message }}
+            <button mat-button type="button" (click)="loadUsers()">Reintentar</button>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Información adicional (se guarda como JSON en SQL Server) -->
+    <div class="card" formGroupName="additionalData">
+      <h2 class="card__title"><mat-icon>tune</mat-icon> Clasificación</h2>
+
+      <div class="field-block">
+        <span class="field-label" id="priority-label">Prioridad *</span>
+        <mat-button-toggle-group formControlName="priority" aria-labelledby="priority-label" class="priority-toggle">
+          @for (priority of priorities; track priority) {
+            <mat-button-toggle [value]="priority" [class]="'toggle--' + priority">
+              <mat-icon>{{ priorityIcons[priority] }}</mat-icon>
+              {{ priorityLabels[priority] }}
+            </mat-button-toggle>
+          }
+        </mat-button-toggle-group>
+        @if (data.priority.touched && data.priority.hasError('required')) {
+          <span class="field-error" role="alert">Seleccione una prioridad.</span>
+        } @else if (serverError(data.priority); as message) {
+          <span class="field-error" role="alert">{{ message }}</span>
+        }
+      </div>
+
+      <div class="form-grid">
+        <mat-form-field>
+          <mat-label>Categoría</mat-label>
+          <input matInput formControlName="category" [matAutocomplete]="categories" [maxlength]="limits.categoryMaxLength" />
+          <mat-autocomplete #categories="matAutocomplete">
+            @for (category of categoryOptions(); track category) {
+              <mat-option [value]="category">{{ category }}</mat-option>
+            }
+          </mat-autocomplete>
+          @if (data.category.hasError('required')) {
+            <mat-error>La categoría es obligatoria.</mat-error>
+          } @else if (data.category.hasError('maxlength')) {
+            <mat-error>Máximo {{ limits.categoryMaxLength }} caracteres.</mat-error>
+          } @else if (serverError(data.category); as message) {
+            <mat-error>{{ message }}</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>Fecha estimada de solución</mat-label>
+          <input matInput formControlName="estimatedResolutionDate" [matDatepicker]="picker" [min]="minDate" placeholder="dd/mm/aaaa" />
+          <mat-datepicker-toggle matIconSuffix [for]="picker" />
+          <mat-datepicker #picker />
+          <mat-hint>Opcional</mat-hint>
+          @if (data.estimatedResolutionDate.hasError('matDatepickerParse')) {
+            <mat-error>Escriba una fecha válida (dd/mm/aaaa).</mat-error>
+          } @else if (data.estimatedResolutionDate.hasError('matDatepickerMin')) {
+            <mat-error>La fecha no puede ser anterior a hoy.</mat-error>
+          } @else if (serverError(data.estimatedResolutionDate); as message) {
+            <mat-error>{{ message }}</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field class="span-2">
+          <mat-label>Etiquetas</mat-label>
+          <mat-chip-grid #chipGrid formControlName="tags" aria-label="Etiquetas del ticket">
+            @for (tag of data.tags.value; track tag) {
+              <mat-chip-row [value]="tag" (removed)="removeTag(tag)">
+                {{ tag }}
+                <button matChipRemove type="button" [attr.aria-label]="'Quitar ' + tag">
+                  <mat-icon>cancel</mat-icon>
+                </button>
+              </mat-chip-row>
+            }
+            <input
+              placeholder="Escriba y pulse Enter o coma"
+              [matChipInputFor]="chipGrid"
+              [matChipInputSeparatorKeyCodes]="separatorKeys"
+              (matChipInputTokenEnd)="addTag($event)"
+            />
+          </mat-chip-grid>
+          @if (tagMessage(); as message) {
+            <mat-hint class="hint-error">{{ message }}</mat-hint>
+          } @else {
+            <mat-hint>Hasta {{ limits.maxTags }} etiquetas, p. ej. network, vpn.</mat-hint>
+          }
+          @if (serverError(data.tags); as message) {
+            <mat-error>{{ message }}</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field class="span-2">
+          <mat-label>Departamento solicitante</mat-label>
+          <input matInput formControlName="department" maxlength="200" placeholder="Ej.: Finanzas" />
+          <mat-hint>Opcional. Se guarda en los metadatos del ticket.</mat-hint>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <a mat-button routerLink="/tickets">Cancelar</a>
+      <button mat-flat-button type="submit" [disabled]="saving()">
+        @if (saving()) {
+          <mat-spinner class="button-spinner" diameter="18" aria-label="Guardando" />
+        } @else {
+          <mat-icon>send</mat-icon>
+        }
+        Crear ticket
+      </button>
+    </div>
+  </form>
+</section>
