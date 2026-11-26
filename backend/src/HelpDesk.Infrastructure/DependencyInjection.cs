@@ -1,4 +1,6 @@
+using HelpDesk.Application.Interfaces;
 using HelpDesk.Infrastructure.Data;
+using HelpDesk.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -17,6 +19,9 @@ public static class DependencyInjection
 
         services.AddDbContext<HelpDeskDbContext>(options =>
             options.UseSqlServer(connectionString));
+
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<ITicketRepository, TicketRepository>();
 
         return services;
     }

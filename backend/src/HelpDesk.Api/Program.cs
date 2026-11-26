@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using HelpDesk.Api.Middleware;
 using HelpDesk.Application;
 using HelpDesk.Infrastructure;
 using HelpDesk.Infrastructure.Data;
@@ -29,6 +30,8 @@ builder.Services
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 // Respuestas de error con el formato estándar ProblemDetails (RFC 9457).
+// GlobalExceptionHandler traduce las excepciones de la aplicación a 400/404/409/500.
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
 builder.Services.AddOpenApi(options =>
