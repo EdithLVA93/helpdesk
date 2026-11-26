@@ -177,18 +177,15 @@ export class TicketDashboard implements OnInit {
   }
 
   ngOnInit(): void {
+    this.reload();
+  }
+
+  /** Carga (o vuelve a cargar tras un error) todo lo que muestra la pantalla. */
+  protected reload(): void {
     this.reload$.next();
     this.loadSummary();
     this.loadTags();
-
-    this.userService
-      .getAll()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({ next: (users) => this.users.set(users), error: () => this.users.set([]) });
-  }
-
-  protected reload(): void {
-    this.reload$.next();
+    this.loadUsers();
   }
 
   protected filterByStatus(status: TicketStatus | null): void {
@@ -287,6 +284,13 @@ export class TicketDashboard implements OnInit {
       .getSummary()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({ next: (summary) => this.summary.set(summary), error: () => this.summary.set(null) });
+  }
+
+  private loadUsers(): void {
+    this.userService
+      .getAll()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ next: (users) => this.users.set(users), error: () => this.users.set([]) });
   }
 
   private loadTags(): void {

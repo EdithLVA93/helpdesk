@@ -37,11 +37,18 @@ function toApiError(error: HttpErrorResponse): ApiError {
   const problem = isProblemDetails(error.error) ? error.error : undefined;
   const status = error.status;
 
-  if (status === 0 || status === 502 || status === 503 || status === 504) {
+  // La API responde todos sus errores 5xx con ProblemDetails (GlobalExceptionHandler).
+  // Un 5xx sin ProblemDetails lo generó otra pieza: el proxy de desarrollo (que
+  // responde 500 vacío si la API está caída) o un gateway (502/503/504).
+  const unreachable = status === 0 || (status >= 500 && !problem);
+
+  if (unreachable) {
     return new ApiError(
       status,
       'Sin conexión con la API',
       'No se pudo conectar con el servidor. Verifique que la API esté en ejecución.',
+      {},
+      true,
     );
   }
 

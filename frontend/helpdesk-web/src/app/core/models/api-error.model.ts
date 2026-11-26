@@ -14,21 +14,22 @@ export interface ProblemDetails {
  * en un ApiError, así los componentes no dependen del formato del backend.
  */
 export class ApiError extends Error {
+  /**
+   * @param isConnectionError true cuando la respuesta no vino de la API: sin red,
+   *   API caída o un proxy/gateway que no pudo llegar a ella (lo decide el interceptor).
+   */
   constructor(
     readonly status: number,
     readonly title: string,
     readonly detail: string,
     readonly fieldErrors: Readonly<Record<string, string[]>> = {},
+    readonly isConnectionError = false,
   ) {
     super(detail);
     this.name = 'ApiError';
   }
 
-  /** 0 = sin respuesta (API caída o sin red); 502-504 = el proxy no llegó a la API. */
-  get isConnectionError(): boolean {
-    return this.status === 0 || this.status === 502 || this.status === 503 || this.status === 504;
-  }
-
+  /** Error interno de la API (5xx con ProblemDetails). */
   get isServerError(): boolean {
     return this.status >= 500 && !this.isConnectionError;
   }
