@@ -21,7 +21,7 @@ internal sealed class TicketRepository(HelpDeskDbContext context) : ITicketRepos
     {
         ArgumentNullException.ThrowIfNull(parameters);
 
-        var filtered = ApplyFilters(context.Tickets.AsNoTracking(), parameters);
+        var filtered = ApplyFilters(CreateBaseQuery(parameters.Tag).AsNoTracking(), parameters);
 
         var totalCount = await filtered.CountAsync(cancellationToken);
 
@@ -62,6 +62,70 @@ internal sealed class TicketRepository(HelpDeskDbContext context) : ITicketRepos
         }
 
         await context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<bool> UpdatePriorityAsync(
+        int id,
+        TicketPriority priority,
+        DateTime updatedAtUtc,
+        CancellationToken cancellationToken)
+    {
+        // JSON_MODIFY devuelve el documento con solo '$.priority' cambiado.
+        // Los valores interpolados se envían como parámetros (@p0, @p1, @p2).
+        // La columna calculada Priority y su índice se actualizan solos, y los
+        // CHECK de la tabla (ISJSON y prioridad permitida) siguen aplicándose.
+        var affectedRows = await context.Database.ExecuteSqlAsync(
+            $"""
+            UPDATE dbo.Tickets
+            SET AdditionalData = JSON_MODIFY(AdditionalData, N'$.priority', {priority.ToString()}),
+                UpdatedAt      = {updatedAtUtc}
+            WHERE Id = {id}
+            """,
+            cancellationToken);
+
+        return affectedRows > 0;
+    }
+
+    public async Task<IReadOnlyList<TagUsageResponse>> GetTagUsageAsync(CancellationToken cancellationToken) =>
+        await context.Database
+            .SqlQuery<TagUsageResponse>(
+                $"""
+                SELECT tag.[value] AS Tag, COUNT(*) AS TicketCount
+                FROM dbo.Tickets AS t
+                CROSS APPLY OPENJSON(t.AdditionalData, N'$.tags') AS tag
+                GROUP BY tag.[value]
+                ORDER BY TicketCount DESC, Tag
+                """)
+            .ToListAsync(cancellationToken);
+
+    /// <summary>
+    /// Sin etiqueta, la consulta parte de la tabla. Con etiqueta, parte de una
+    /// consulta SQL que recorre el arreglo JSON $.tags con OPENJSON.
+    ///
+    /// FromSql con una cadena interpolada envía {tag} como parámetro
+    /// (@p0), nunca concatenado: no hay riesgo de inyección SQL. EF Core
+    /// envuelve esta consulta como subconsulta y añade encima los demás
+    /// filtros, el orden, el Include y la paginación.
+    /// </summary>
+    private IQueryable<Ticket> CreateBaseQuery(string? tag)
+    {
+        if (string.IsNullOrWhiteSpace(tag))
+        {
+            return context.Tickets;
+        }
+
+        var normalizedTag = tag.Trim();
+
+        return context.Tickets.FromSql(
+            $"""
+            SELECT t.*
+            FROM dbo.Tickets AS t
+            WHERE EXISTS (
+                SELECT 1
+                FROM OPENJSON(t.AdditionalData, N'$.tags') AS tag
+                WHERE tag.[value] = {normalizedTag}
+            )
+            """);
     }
 
     /// <summary>

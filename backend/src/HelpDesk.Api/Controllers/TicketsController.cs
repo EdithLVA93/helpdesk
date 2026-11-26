@@ -38,6 +38,7 @@ public sealed class TicketsController(ITicketService ticketService) : Controller
     /// GET /api/tickets?status=Open
     /// GET /api/tickets?assignedUserId=1&amp;status=InProgress
     /// GET /api/tickets?priority=High&amp;category=Infrastructure&amp;sortDirection=Ascending&amp;page=1&amp;pageSize=20
+    /// GET /api/tickets?tag=network   (busca dentro del arreglo JSON $.tags con OPENJSON)
     /// </remarks>
     /// <response code="200">Página de tickets.</response>
     /// <response code="400">Parámetros inválidos (estado desconocido, página menor que 1...).</response>
@@ -78,6 +79,34 @@ public sealed class TicketsController(ITicketService ticketService) : Controller
         UpdateTicketStatusRequest request,
         CancellationToken cancellationToken) =>
         Ok(await ticketService.ChangeStatusAsync(id, request, cancellationToken));
+
+    /// <summary>
+    /// Cambia solo la prioridad del ticket. En SQL Server se ejecuta con
+    /// JSON_MODIFY sobre AdditionalData, sin reescribir el resto del JSON.
+    /// </summary>
+    /// <response code="200">Prioridad actualizada. Devuelve el ticket completo.</response>
+    /// <response code="400">Prioridad ausente o desconocida.</response>
+    /// <response code="404">No existe un ticket con ese id.</response>
+    [HttpPatch("{id:int}/priority")]
+    [Consumes("application/json")]
+    [ProducesResponseType<TicketResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+    public async Task<ActionResult<TicketResponse>> ChangePriority(
+        int id,
+        UpdateTicketPriorityRequest request,
+        CancellationToken cancellationToken) =>
+        Ok(await ticketService.ChangePriorityAsync(id, request, cancellationToken));
+
+    /// <summary>
+    /// Etiquetas usadas en los tickets y cuántos tickets tiene cada una
+    /// (OPENJSON + GROUP BY en SQL Server). Alimenta el filtro por etiqueta.
+    /// </summary>
+    /// <response code="200">Etiquetas ordenadas de más a menos usadas.</response>
+    [HttpGet("tags")]
+    [ProducesResponseType<IReadOnlyList<TagUsageResponse>>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<TagUsageResponse>>> GetTagUsage(CancellationToken cancellationToken) =>
+        Ok(await ticketService.GetTagUsageAsync(cancellationToken));
 
     /// <summary>Cantidad de tickets por estado, para las tarjetas de indicadores.</summary>
     /// <response code="200">Totales por estado.</response>

@@ -24,6 +24,12 @@ public sealed class TicketQueryParameters
     /// <summary>Filtra por categoría (valor dentro del JSON).</summary>
     public string? Category { get; init; }
 
+    /// <summary>
+    /// Filtra los tickets que tienen esta etiqueta dentro del arreglo JSON
+    /// $.tags (se resuelve en SQL Server con OPENJSON).
+    /// </summary>
+    public string? Tag { get; init; }
+
     /// <summary>Orden por fecha de creación. Por defecto, los más recientes primero.</summary>
     public SortDirection SortDirection { get; init; } = SortDirection.Descending;
 

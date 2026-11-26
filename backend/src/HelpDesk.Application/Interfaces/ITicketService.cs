@@ -22,5 +22,11 @@ public interface ITicketService
     /// <exception cref="Domain.Exceptions.InvalidStatusTransitionException">Transición no permitida (409).</exception>
     Task<TicketResponse> ChangeStatusAsync(int id, UpdateTicketStatusRequest request, CancellationToken cancellationToken);
 
+    /// <exception cref="FluentValidation.ValidationException">Prioridad ausente o inválida (400).</exception>
+    /// <exception cref="Exceptions.NotFoundException">El ticket no existe (404).</exception>
+    Task<TicketResponse> ChangePriorityAsync(int id, UpdateTicketPriorityRequest request, CancellationToken cancellationToken);
+
     Task<TicketSummaryResponse> GetSummaryAsync(CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<TagUsageResponse>> GetTagUsageAsync(CancellationToken cancellationToken);
 }

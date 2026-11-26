@@ -16,6 +16,7 @@ internal sealed class TicketService(
     IUserRepository userRepository,
     IValidator<CreateTicketRequest> createValidator,
     IValidator<UpdateTicketStatusRequest> statusValidator,
+    IValidator<UpdateTicketPriorityRequest> priorityValidator,
     IValidator<TicketQueryParameters> queryValidator,
     TimeProvider timeProvider) : ITicketService
 {
@@ -95,6 +96,35 @@ internal sealed class TicketService(
 
         return ticket.ToResponse();
     }
+
+    public async Task<TicketResponse> ChangePriorityAsync(
+        int id,
+        UpdateTicketPriorityRequest request,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        await priorityValidator.ValidateAndThrowAsync(request, cancellationToken);
+
+        // Actualización parcial en SQL Server (JSON_MODIFY). La prioridad no
+        // depende del estado, así que no hay regla de dominio que aplicar.
+        var updated = await ticketRepository.UpdatePriorityAsync(
+            id,
+            request.Priority!.Value,
+            timeProvider.GetUtcNowTruncatedToMilliseconds(),
+            cancellationToken);
+
+        if (!updated)
+        {
+            throw new NotFoundException(TicketResourceName, id);
+        }
+
+        // Se vuelve a leer para devolver el JSON tal como quedó guardado.
+        return await GetByIdAsync(id, cancellationToken);
+    }
+
+    public Task<IReadOnlyList<TagUsageResponse>> GetTagUsageAsync(CancellationToken cancellationToken) =>
+        ticketRepository.GetTagUsageAsync(cancellationToken);
 
     public async Task<TicketSummaryResponse> GetSummaryAsync(CancellationToken cancellationToken)
     {

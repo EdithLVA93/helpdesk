@@ -25,6 +25,10 @@ internal sealed class TicketQueryParametersValidator : AbstractValidator<TicketQ
             .MaximumLength(Ticket.CategoryMaxLength)
             .WithMessage($"La categoría no puede superar {Ticket.CategoryMaxLength} caracteres.");
 
+        RuleFor(query => query.Tag)
+            .MaximumLength(Ticket.TagMaxLength)
+            .WithMessage($"La etiqueta no puede superar {Ticket.TagMaxLength} caracteres.");
+
         RuleFor(query => query.Page)
             .GreaterThanOrEqualTo(1).WithMessage("La página debe ser 1 o mayor.");
 

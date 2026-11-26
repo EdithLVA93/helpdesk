@@ -30,4 +30,17 @@ public interface ITicketRepository
 
     /// <summary>Guarda los cambios de un ticket existente.</summary>
     Task UpdateAsync(Ticket ticket, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Cambia solo $.priority dentro de AdditionalData con JSON_MODIFY, sin
+    /// leer ni reescribir el resto del documento JSON.
+    /// </summary>
+    /// <returns>false si el ticket no existe.</returns>
+    Task<bool> UpdatePriorityAsync(int id, TicketPriority priority, DateTime updatedAtUtc, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Etiquetas usadas en los tickets con su número de tickets, calculado con
+    /// OPENJSON + GROUP BY. Ordenadas de más a menos usadas.
+    /// </summary>
+    Task<IReadOnlyList<TagUsageResponse>> GetTagUsageAsync(CancellationToken cancellationToken);
 }

@@ -90,6 +90,15 @@ GET {{baseUrl}}/api/tickets?assignedUserId={{userId}}&status=InProgress&sortDire
 ### Filtrar por valores guardados en el JSON (prioridad y categoría)
 GET {{baseUrl}}/api/tickets?priority=High&category=Infrastructure
 
+### Filtrar por etiqueta dentro del arreglo JSON $.tags (OPENJSON en SQL Server)
+GET {{baseUrl}}/api/tickets?tag=network
+
+### Etiqueta combinada con estado
+GET {{baseUrl}}/api/tickets?tag=server&status=InProgress
+
+### Catálogo de etiquetas con su número de tickets (OPENJSON + GROUP BY)
+GET {{baseUrl}}/api/tickets/tags
+
 ### Paginación
 GET {{baseUrl}}/api/tickets?page=2&pageSize=5
 
@@ -116,6 +125,22 @@ Content-Type: application/json
 
 {
   "status": "Resolved"
+}
+
+### Cambiar solo la prioridad (JSON_MODIFY: el resto del JSON no se toca) → 200
+PATCH {{baseUrl}}/api/tickets/{{ticketId}}/priority
+Content-Type: application/json
+
+{
+  "priority": "Critical"
+}
+
+### Prioridad desconocida → 400
+PATCH {{baseUrl}}/api/tickets/{{ticketId}}/priority
+Content-Type: application/json
+
+{
+  "priority": "Urgent"
 }
 
 ############################################################
