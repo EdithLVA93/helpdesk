@@ -1,0 +1,39 @@
+<Project>
+  <!--
+    Gestión central de paquetes (Central Package Management).
+    Todas las versiones NuGet se declaran aquí y los .csproj solo referencian
+    el nombre del paquete. Así es imposible mezclar versiones entre proyectos.
+
+    Regla: los paquetes de Microsoft.* y EF Core se mantienen en la línea 10.0.x,
+    la misma que el target framework (net10.0). La línea 11.x requiere .NET 11.
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <!-- API -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.15" />
+    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="11.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.15" />
+  </ItemGroup>
+
+  <!-- Application -->
+  <ItemGroup>
+    <PackageVersion Include="FluentValidation" Version="12.2.0" />
+    <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.2.0" />
+  </ItemGroup>
+
+  <!-- Infrastructure -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.15" />
+  </ItemGroup>
+
+  <!-- Tests (versiones de la plantilla xunit del SDK 10.0.404) -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,7 @@
+@baseUrl = https://localhost:7080
+
+### Estado de la API y conexión a SQL Server
+GET {{baseUrl}}/health
+
+### Documento OpenAPI
+GET {{baseUrl}}/openapi/v1.json

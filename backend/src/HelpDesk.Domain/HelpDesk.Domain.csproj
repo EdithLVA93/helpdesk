@@ -1,0 +1,5 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Domain no depende de ningún otro proyecto ni paquete. -->
+
+</Project>

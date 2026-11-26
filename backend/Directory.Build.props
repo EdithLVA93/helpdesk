@@ -1,0 +1,14 @@
+<Project>
+  <!--
+    Configuración común a todos los proyectos de backend/.
+    Centralizarla evita que cada .csproj declare (y desalinee) lo mismo.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+</Project>

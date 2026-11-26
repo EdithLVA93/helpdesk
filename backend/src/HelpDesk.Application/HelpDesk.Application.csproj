@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\HelpDesk.Domain\HelpDesk.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+  </ItemGroup>
+
+  <!-- Permite que los tests unitarios accedan a miembros internal. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="HelpDesk.UnitTests" />
+  </ItemGroup>
+
+</Project>
