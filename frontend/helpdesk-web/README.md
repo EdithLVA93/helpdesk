@@ -1,59 +1,32 @@
-# HelpdeskWeb
+# HelpDesk Web
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.13.
+Frontend Angular 21 de la mesa de ayuda. La documentación completa del proyecto
+(arquitectura, base de datos, API y decisiones técnicas) está en el
+[README principal](../../README.md).
 
-## Development server
+## Comandos
 
-To start a local development server, run:
+| Comando | Qué hace |
+| --- | --- |
+| `npm install` | Instala las dependencias |
+| `npm start` | Servidor de desarrollo en `http://localhost:4200`, con proxy de `/api` a `https://localhost:7080` |
+| `npm test -- --watch=false` | Ejecuta las pruebas unitarias (Vitest) una vez |
+| `npm run build` | Compilación de producción en `dist/helpdesk-web/browser` |
 
-```bash
-ng serve
+Para usar otra dirección de la API en desarrollo:
+
+```powershell
+$env:HELPDESK_API_URL = "http://localhost:5080"; npm start
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+## Estructura
 
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
+```text
+src/app/
+├── core/       # Interceptor de errores, ApiError, notificaciones, i18n (paginador, fechas)
+├── shared/     # Badges de estado y prioridad, validadores de formulario, utilidades
+├── layout/     # Shell con menú lateral adaptable
+└── features/
+    ├── tickets/  # Panel (filtros, indicadores, cambio de estado/prioridad) y formulario de creación
+    └── users/    # Alta y listado de usuarios
 ```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
