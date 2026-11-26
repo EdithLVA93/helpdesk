@@ -324,14 +324,19 @@ GO
 
 /* B4. OPENJSON - JSON a filas ------------------------------------------------ */
 
--- B4.1 Una fila por etiqueta (CROSS APPLY recorre el arreglo de cada ticket)
+-- B4.1 Una fila por etiqueta (CROSS APPLY recorre el arreglo de cada ticket).
+--      Sin esquema, OPENJSON devuelve [key] (posición en el arreglo, NVARCHAR(4000)),
+--      [value] (NVARCHAR(MAX)) y [type]. Para ordenar, SQL Server reserva memoria
+--      según el ancho DECLARADO de las columnas: sin acotar, este plan pedía
+--      7.872 KB; con CAST a INT y NVARCHAR(30), 864 KB (ver también B4.3).
 SELECT
     t.Id,
     t.Title,
-    tag.[value] AS Tag
+    CAST(tag.[key] AS INT)            AS Position,
+    CAST(tag.[value] AS NVARCHAR(30)) AS Tag
 FROM dbo.Tickets AS t
 CROSS APPLY OPENJSON(t.AdditionalData, N'$.tags') AS tag
-ORDER BY t.Id, Tag;
+ORDER BY t.Id, Position;
 GO
 
 -- B4.2 Filtrar tickets que tienen una etiqueta.
@@ -348,14 +353,20 @@ WHERE EXISTS (
 ORDER BY t.CreatedAt DESC;
 GO
 
--- B4.3 Etiquetas más usadas (agregación sobre el contenido del JSON)
+-- B4.3 Etiquetas más usadas (agregación sobre el contenido del JSON).
+--      Es la consulta de GET /api/tickets/tags.
+--      WITH (Tag NVARCHAR(30) '$') declara el tipo de cada elemento del arreglo.
+--      Sin esquema, "value" es NVARCHAR(MAX) y para agrupar/ordenar SQL Server
+--      reserva memoria pensando en textos de hasta 2 GB: el plan de esta consulta
+--      pedía 5.920 KB sin tipo y 800 KB con tipo. Con poca memoria disponible,
+--      la versión sin tipo quedaba esperando (RESOURCE_SEMAPHORE).
 SELECT
-    tag.[value] AS Tag,
-    COUNT(*)    AS TicketCount
+    tag.Tag,
+    COUNT(*) AS TicketCount
 FROM dbo.Tickets AS t
-CROSS APPLY OPENJSON(t.AdditionalData, N'$.tags') AS tag
-GROUP BY tag.[value]
-ORDER BY TicketCount DESC, Tag;
+CROSS APPLY OPENJSON(t.AdditionalData, N'$.tags') WITH (Tag NVARCHAR(30) N'$') AS tag
+GROUP BY tag.Tag
+ORDER BY TicketCount DESC, tag.Tag;
 GO
 
 -- B4.4 Leer todas las propiedades con tipos, usando OPENJSON ... WITH.

@@ -86,15 +86,22 @@ internal sealed class TicketRepository(HelpDeskDbContext context) : ITicketRepos
         return affectedRows > 0;
     }
 
+    /// <remarks>
+    /// OPENJSON ... WITH (Tag NVARCHAR(30) '$') declara el tipo de cada etiqueta.
+    /// Sin esquema, OPENJSON devuelve "value" como NVARCHAR(MAX) y SQL Server
+    /// reserva memoria para agrupar y ordenar textos de hasta 2 GB: el plan
+    /// pedía 5.920 KB frente a 800 KB con el tipo declarado. Con poca memoria
+    /// disponible, la consulta sin tipo esperaba en RESOURCE_SEMAPHORE.
+    /// </remarks>
     public async Task<IReadOnlyList<TagUsageResponse>> GetTagUsageAsync(CancellationToken cancellationToken) =>
         await context.Database
             .SqlQuery<TagUsageResponse>(
                 $"""
-                SELECT tag.[value] AS Tag, COUNT(*) AS TicketCount
+                SELECT tag.Tag, COUNT(*) AS TicketCount
                 FROM dbo.Tickets AS t
-                CROSS APPLY OPENJSON(t.AdditionalData, N'$.tags') AS tag
-                GROUP BY tag.[value]
-                ORDER BY TicketCount DESC, Tag
+                CROSS APPLY OPENJSON(t.AdditionalData, N'$.tags') WITH (Tag NVARCHAR(30) N'$') AS tag
+                GROUP BY tag.Tag
+                ORDER BY TicketCount DESC, tag.Tag
                 """)
             .ToListAsync(cancellationToken);
 
