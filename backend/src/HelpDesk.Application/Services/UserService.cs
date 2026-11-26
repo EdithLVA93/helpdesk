@@ -42,4 +42,12 @@ internal sealed class UserService(
 
         return [.. users.Select(user => user.ToResponse())];
     }
+
+    public async Task<UserResponse> GetByIdAsync(int id, CancellationToken cancellationToken)
+    {
+        var user = await userRepository.GetByIdAsync(id, cancellationToken)
+            ?? throw new NotFoundException("el usuario", id);
+
+        return user.ToResponse();
+    }
 }

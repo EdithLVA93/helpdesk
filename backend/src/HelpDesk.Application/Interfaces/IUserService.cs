@@ -12,4 +12,7 @@ public interface IUserService
     Task<UserResponse> CreateAsync(CreateUserRequest request, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<UserResponse>> GetAllAsync(CancellationToken cancellationToken);
+
+    /// <exception cref="Exceptions.NotFoundException">El usuario no existe (404).</exception>
+    Task<UserResponse> GetByIdAsync(int id, CancellationToken cancellationToken);
 }
