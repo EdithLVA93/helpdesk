@@ -1,7 +1,126 @@
-@baseUrl = https://localhost:7080
+# Peticiones de ejemplo para Visual Studio / VS Code (REST Client).
+# Arranca la API con el perfil "http" (o cambia baseUrl a https://localhost:7080).
+# Ajusta userId y ticketId con ids reales de tu base de datos.
 
-### Estado de la API y conexión a SQL Server
+@baseUrl = http://localhost:5080
+@userId = 1
+@ticketId = 1
+
+### Estado de la API y de la conexión a SQL Server
 GET {{baseUrl}}/health
 
-### Documento OpenAPI
+############################################################
+# USUARIOS
+############################################################
+
+### Crear usuario → 201 + cabecera Location
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "name": "María Gómez",
+  "email": "maria.gomez@example.com"
+}
+
+### Crear usuario inválido → 400 (nombre vacío, correo mal formado)
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "name": "",
+  "email": "correo-invalido"
+}
+
+### Listar usuarios (ordenados por nombre)
+GET {{baseUrl}}/api/users
+
+### Obtener usuario por id → 200 / 404
+GET {{baseUrl}}/api/users/{{userId}}
+
+############################################################
+# TICKETS
+############################################################
+
+### Crear ticket → 201 (nace en Open)
+POST {{baseUrl}}/api/tickets
+Content-Type: application/json
+
+{
+  "title": "No funciona la impresora de recepción",
+  "description": "Muestra el error 'papel atascado' sin papel en la bandeja.",
+  "assignedUserId": {{userId}},
+  "additionalData": {
+    "priority": "High",
+    "category": "Hardware",
+    "estimatedResolutionDate": "2026-12-15",
+    "tags": ["printer", "reception"],
+    "metadata": { "department": "Administration", "source": "Phone" }
+  }
+}
+
+### Crear ticket sin título → 400
+POST {{baseUrl}}/api/tickets
+Content-Type: application/json
+
+{
+  "title": "",
+  "assignedUserId": {{userId}},
+  "additionalData": { "priority": "Low", "category": "Software" }
+}
+
+### Crear ticket con usuario inexistente → 400 (errors.assignedUserId)
+POST {{baseUrl}}/api/tickets
+Content-Type: application/json
+
+{
+  "title": "Ticket con usuario inexistente",
+  "assignedUserId": 999999,
+  "additionalData": { "priority": "Low", "category": "Software" }
+}
+
+### Listar tickets (por defecto: más recientes primero, 10 por página)
+GET {{baseUrl}}/api/tickets
+
+### Filtrar por estado
+GET {{baseUrl}}/api/tickets?status=Open
+
+### Tickets de un usuario, filtrados por estado y ordenados del más antiguo al más reciente
+GET {{baseUrl}}/api/tickets?assignedUserId={{userId}}&status=InProgress&sortDirection=Ascending
+
+### Filtrar por valores guardados en el JSON (prioridad y categoría)
+GET {{baseUrl}}/api/tickets?priority=High&category=Infrastructure
+
+### Paginación
+GET {{baseUrl}}/api/tickets?page=2&pageSize=5
+
+### Obtener ticket por id → 200 / 404
+GET {{baseUrl}}/api/tickets/{{ticketId}}
+
+### Ticket inexistente → 404
+GET {{baseUrl}}/api/tickets/999999
+
+### Indicadores: cantidad de tickets por estado
+GET {{baseUrl}}/api/tickets/summary
+
+### Cambiar estado: Open → InProgress → 200
+PUT {{baseUrl}}/api/tickets/{{ticketId}}/status
+Content-Type: application/json
+
+{
+  "status": "InProgress"
+}
+
+### Cambiar estado: Open → Resolved → 409 (transición no permitida)
+PUT {{baseUrl}}/api/tickets/{{ticketId}}/status
+Content-Type: application/json
+
+{
+  "status": "Resolved"
+}
+
+############################################################
+# DOCUMENTACIÓN
+############################################################
+
+### Documento OpenAPI (Swagger UI en {{baseUrl}}/swagger)
 GET {{baseUrl}}/openapi/v1.json
