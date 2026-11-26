@@ -81,7 +81,7 @@ internal sealed partial class GlobalExceptionHandler(
         return new ValidationProblemDetails(errors)
         {
             Status = StatusCodes.Status400BadRequest,
-            Title = "Uno o más campos no son válidos.",
+            Title = InvalidModelStateResponse.Title,
         };
     }
 

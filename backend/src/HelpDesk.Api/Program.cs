@@ -24,10 +24,24 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(connectionString);
 
 builder.Services
-    .AddControllers()
+    .AddControllers(options =>
+        // Sin [Required] implícito por tipos no anulables: la validación de
+        // los DTOs es responsabilidad de FluentValidation, no de MVC.
+        options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true)
     .AddJsonOptions(options =>
+    {
         // Los enums viajan como texto ("Open") y no como número (0).
-        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+
+        // Un JSON mal formado devuelve un mensaje genérico en lugar del detalle
+        // interno del deserializador (que expone nombres de tipos .NET).
+        options.AllowInputFormatterExceptionMessages = false;
+    })
+    .ConfigureApiBehaviorOptions(options =>
+        // Errores de formato detectados antes de llegar al controlador (JSON
+        // inválido, enum desconocido, parámetro de consulta mal escrito): mismo
+        // formato y mismo título que los errores de FluentValidation.
+        options.InvalidModelStateResponseFactory = InvalidModelStateResponse.Create);
 
 // Respuestas de error con el formato estándar ProblemDetails (RFC 9457).
 // GlobalExceptionHandler traduce las excepciones de la aplicación a 400/404/409/500.
